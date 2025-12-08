@@ -26,12 +26,25 @@ export default function CreateBusinessPage() {
     const name = e.target.value;
     const slug = name
       .toLowerCase()
-      .replace(/[^\u0600-\u06FFa-z0-9\s-]/g, '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s-]/g, '')
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '')
       .substring(0, 50);
 
     setFormData({ ...formData, name, slug });
+  };
+
+  const handleSlugChange = (e) => {
+    let slug = e.target.value
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    
+    setFormData({ ...formData, slug });
   };
 
   const handleChange = (e) => {
@@ -46,6 +59,8 @@ export default function CreateBusinessPage() {
     try {
       const token = localStorage.getItem('token');
       
+      console.log('📤 Sending data:', formData);
+      
       const response = await fetch('/api/business/create', {
         method: 'POST',
         headers: {
@@ -56,15 +71,16 @@ export default function CreateBusinessPage() {
       });
 
       const data = await response.json();
+      console.log('📥 Response:', data);
 
       if (!response.ok) {
         throw new Error(data.error || 'فشل إنشاء العمل');
       }
 
-      console.log('✅ Business created:', data.business);
-
       alert('🎉 تم إنشاء عملك بنجاح!');
-      router.push('/dashboard');
+      
+      // إعادة تحميل معلومات المستخدم
+      window.location.href = '/dashboard';
 
     } catch (err) {
       console.error('❌ Error:', err);
@@ -109,7 +125,7 @@ export default function CreateBusinessPage() {
             {/* اسم العمل */}
             <div>
               <label className="block text-lg font-semibold text-gray-900 mb-2">
-                اسم العمل *
+                اسم العمل <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -117,6 +133,8 @@ export default function CreateBusinessPage() {
                 value={formData.name}
                 onChange={handleNameChange}
                 required
+                minLength="3"
+                maxLength="100"
                 className="w-full px-5 py-4 border-2 border-gray-300 rounded-2xl focus:ring-4 focus:ring-gold-300 focus:border-gold-500 transition-all text-lg"
                 placeholder="مثال: مؤسسة أناكت المنازل التجارية"
               />
@@ -125,26 +143,28 @@ export default function CreateBusinessPage() {
             {/* الرابط المخصص */}
             <div>
               <label className="block text-lg font-semibold text-gray-900 mb-2">
-                الرابط المخصص *
+                الرابط المخصص <span className="text-red-500">*</span>
               </label>
               <div className="flex items-center gap-2">
-                <span className="text-gray-500 text-lg">
-                  {typeof window !== 'undefined' ? window.location.origin : ''}/r/
+                <span className="text-gray-500 text-lg shrink-0">
+                  /r/
                 </span>
                 <input
                   type="text"
                   name="slug"
                   value={formData.slug}
-                  onChange={handleChange}
+                  onChange={handleSlugChange}
                   required
-                  pattern="^[a-z0-9-]+$"
+                  minLength="3"
+                  maxLength="50"
+                  pattern="^[a-z0-9]+(?:-[a-z0-9]+)*$"
                   className="flex-1 px-5 py-4 border-2 border-gray-300 rounded-2xl focus:ring-4 focus:ring-gold-300 focus:border-gold-500 transition-all text-lg"
                   placeholder="anakt"
                   dir="ltr"
                 />
               </div>
               <p className="text-sm text-gray-500 mt-1">
-                أحرف إنجليزية صغيرة وأرقام وشرطات فقط
+                ✅ أحرف إنجليزية صغيرة وأرقام وشرطات فقط (مثال: my-business-2024)
               </p>
             </div>
 
@@ -167,7 +187,7 @@ export default function CreateBusinessPage() {
             {/* رقم واتساب */}
             <div>
               <label className="block text-lg font-semibold text-gray-900 mb-2">
-                رقم واتساب (مع كود الدولة) *
+                رقم واتساب (مع كود الدولة) <span className="text-red-500">*</span>
               </label>
               <input
                 type="tel"
@@ -175,12 +195,13 @@ export default function CreateBusinessPage() {
                 value={formData.whatsappPhone}
                 onChange={handleChange}
                 required
+                pattern="^[0-9]{10,15}$"
                 className="w-full px-5 py-4 border-2 border-gray-300 rounded-2xl focus:ring-4 focus:ring-gold-300 focus:border-gold-500 transition-all text-lg"
                 placeholder="966501234567"
                 dir="ltr"
               />
               <p className="text-sm text-gray-500 mt-1">
-                مثال: 966501234567 (بدون + أو 00)
+                ✅ أرقام فقط مع كود الدولة (مثال: 966501234567)
               </p>
             </div>
 
@@ -203,9 +224,9 @@ export default function CreateBusinessPage() {
             {/* زر الإرسال */}
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !formData.name || !formData.slug || !formData.whatsappPhone}
               className={`w-full py-5 px-6 rounded-2xl text-white text-xl font-bold transition-all duration-300 transform ${
-                isSubmitting
+                isSubmitting || !formData.name || !formData.slug || !formData.whatsappPhone
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 hover:scale-105 shadow-lg hover:shadow-xl'
               }`}
