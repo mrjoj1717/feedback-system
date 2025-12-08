@@ -6,6 +6,8 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log('📋 Fetching businesses...');
+
     const businesses = await prisma.business.findMany({
       select: {
         id: true,
@@ -16,9 +18,19 @@ export default async function handler(req, res) {
       },
     });
 
-    return res.status(200).json({ businesses });
+    console.log(`✅ Found ${businesses.length} businesses`);
+
+    return res.status(200).json({ 
+      success: true,
+      businesses 
+    });
+
   } catch (error) {
-    console.error('Error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error('❌ Error fetching businesses:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Internal server error',
+      details: error.message 
+    });
   }
 }
