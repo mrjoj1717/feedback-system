@@ -24,6 +24,7 @@ export default function DashboardLayout({ children }) {
     return null;
   }
 
+<<<<<<< HEAD
   // ابحث عن القائمة واضف هذا العنصر
 const menuItems = [
   { name: 'لوحة التحكم', icon: '📊', href: '/dashboard' },
@@ -32,6 +33,13 @@ const menuItems = [
   { name: 'الإعدادات', icon: '⚙️', href: '/dashboard/settings' },
 ];
 
+=======
+  const menuItems = [
+    { href: '/dashboard', label: 'لوحة التحكم', icon: '📊' },
+    { href: '/dashboard/analytics', label: 'التحليلات', icon: '📈' },
+    { href: '/dashboard/settings', label: 'الإعدادات', icon: '⚙️' },
+  ];
+>>>>>>> dbf23449599f38b6c9c6051867fd45c195ef6420
 
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
