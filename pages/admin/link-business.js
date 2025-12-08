@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { useUser } from '../../../context/UserContext';
+import { useUser } from '../../context/UserContext';
 
 export default function LinkBusinessPage() {
   const router = useRouter();
