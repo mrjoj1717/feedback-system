@@ -7,6 +7,8 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log('📥 Request body:', req.body);
+
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -14,31 +16,55 @@ export default async function handler(req, res) {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    let decoded;
+    
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
 
-    const { name, slug, email, whatsappPhone, googleReviewUrl } = req.body;
+    const { name, slug, email, whatsappPhone, googleReviewUrl, autoLink = false } = req.body; // ⬅️ جديد
 
+    // Validation
     if (!name || !slug) {
       return res.status(400).json({ error: 'الاسم والـ slug مطلوبان' });
     }
 
-    // تحقق من أن slug غير مستخدم
+    if (name.length < 3 || name.length > 100) {
+      return res.status(400).json({ error: 'اسم العمل يجب أن يكون بين 3 و 100 حرف' });
+    }
+
+    if (slug.length < 3 || slug.length > 50) {
+      return res.status(400).json({ error: 'الـ slug يجب أن يكون بين 3 و 50 حرف' });
+    }
+
+    const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+    if (!slugRegex.test(slug)) {
+      return res.status(400).json({ error: 'الـ slug يجب أن يحتوي على أحرف إنجليزية صغيرة وأرقام وشرطات فقط' });
+    }
+
+    console.log('✅ Validation passed');
+
+    // تحقق من slug
     const existingBusiness = await prisma.business.findUnique({
-      where: { slug: slug.toLowerCase() },
+      where: { slug: slug.toLowerCase().trim() },
     });
 
     if (existingBusiness) {
       return res.status(400).json({ error: 'هذا الرابط محجوز مسبقاً' });
     }
 
+    console.log('✅ Slug available');
+
     // إنشاء Business
     const business = await prisma.business.create({
       data: {
-        name,
-        slug: slug.toLowerCase().replace(/\s+/g, '-'),
-        email: email || '',
-        whatsappPhone: whatsappPhone || '',
-        googleReviewUrl: googleReviewUrl || '',
+        name: name.trim(),
+        slug: slug.toLowerCase().trim(),
+        email: email?.trim() || '',
+        whatsappPhone: whatsappPhone?.replace(/[^0-9]/g, '') || '',
+        googleReviewUrl: googleReviewUrl?.trim() || '',
         totalViews: 0,
         totalFeedback: 0,
         averageRating: 0,
@@ -52,26 +78,37 @@ export default async function handler(req, res) {
 
     console.log('✅ Business created:', business.id);
 
-    // ربط Business بالمستخدم
-    await prisma.user.update({
-      where: { id: decoded.userId },
-      data: {
-        ownedBusinesses: [business.id],
-      },
-    });
-
-    console.log('✅ Linked to user:', decoded.userId);
+    // ربط بالمستخدم (اختياري)
+    if (autoLink) {
+      const user = await prisma.user.update({
+        where: { id: decoded.userId },
+        data: {
+          ownedBusinesses: [business.id],
+        },
+      });
+      console.log('✅ Linked to user:', decoded.userId);
+    } else {
+      console.log('⏭️  Skipped auto-linking');
+    }
 
     return res.status(201).json({
       success: true,
-      business,
+      business: {
+        id: business.id,
+        name: business.name,
+        slug: business.slug,
+        email: business.email,
+        whatsappPhone: business.whatsappPhone,
+      },
+      message: autoLink ? 'تم إنشاء العمل وربطه بنجاح' : 'تم إنشاء العمل بنجاح',
     });
 
   } catch (error) {
-    console.error('❌ Create error:', error);
+    console.error('❌ Create business error:', error);
+    
     return res.status(500).json({ 
       error: 'حدث خطأ في إنشاء العمل',
-      details: error.message 
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
