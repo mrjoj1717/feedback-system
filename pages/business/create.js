@@ -137,7 +137,7 @@ export default function CreateBusinessPage() {
                   value={formData.slug}
                   onChange={handleChange}
                   required
-                  pattern="[a-z0-9-]+"
+                  pattern="^[a-z0-9-]+$"
                   className="flex-1 px-5 py-4 border-2 border-gray-300 rounded-2xl focus:ring-4 focus:ring-gold-300 focus:border-gold-500 transition-all text-lg"
                   placeholder="anakt"
                   dir="ltr"
