@@ -144,3 +144,46 @@ export default function LinkBusinessPage() {
     </div>
   );
 }
+
+
+
+const fetchBusinesses = async () => {
+  try {
+    console.log('🔍 Fetching businesses...');
+    
+    const response = await fetch('/api/business/list');
+    
+    console.log('Response status:', response.status);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const text = await response.text();
+    console.log('Response text:', text);
+    
+    if (!text) {
+      console.error('❌ Empty response');
+      setMessage({ type: 'error', text: 'لم يتم العثور على أعمال' });
+      return;
+    }
+    
+    const data = JSON.parse(text);
+    console.log('✅ Parsed data:', data);
+    
+    if (data.success && data.businesses) {
+      setBusinesses(data.businesses);
+    } else {
+      setBusinesses([]);
+    }
+    
+  } catch (error) {
+    console.error('❌ Fetch error:', error);
+    setMessage({ 
+      type: 'error', 
+      text: 'حدث خطأ في جلب البيانات: ' + error.message 
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
