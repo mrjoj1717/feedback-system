@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ============= Business Model =============
+model Business {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  name              String
+  slug              String   @unique
+  email             String?
+  whatsappPhone     String?
+  googlePlaceId     String?
+  googleReviewUrl   String?
+  
+  totalViews        Int      @default(0)
+  totalFeedback     Int      @default(0)
+  averageRating     Float    @default(0)
+  
+  feedbacks         Feedback[]
+  views             View[]
+  dailyAnalytics    DailyAnalytics[]
+  settings          BusinessSettings?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// ============= Business Settings =============
+model BusinessSettings {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  businessId        String   @unique @db.ObjectId
+  business          Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  whatsappPhone     String?
+  googlePlaceId     String?
+  googleReviewUrl   String?
+  
+  autoReply         String?
+  autoReplyEnabled  Boolean  @default(false)
+  
+  emailNotification Boolean  @default(true)
+  
+  showVisitorName   Boolean  @default(true)
+  showVisitorEmail  Boolean  @default(false)
+  showVisitorPhone  Boolean  @default(false)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// ============= Feedback Model =============
+model Feedback {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  businessId        String   @db.ObjectId
+  business          Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  rating            Int
+  comment           String?
+  
+  visitorName       String?
+  visitorEmail      String?
+  visitorPhone      String?
+  visitorIp         String?
+  
+  status            String   @default("pending")
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([businessId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ============= View Model =============
+model View {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  businessId        String   @db.ObjectId
+  business          Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  visitorIp         String?
+  userAgent         String?
+  referrer          String?
+  
+  createdAt         DateTime @default(now())
+  
+  @@index([businessId])
+  @@index([createdAt])
+}
+
+// ============= Daily Analytics =============
+model DailyAnalytics {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  businessId        String   @db.ObjectId
+  business          Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  date              DateTime
+  
+  views             Int      @default(0)
+  feedbacks         Int      @default(0)
+  avgRating         Float    @default(0)
+  
+  rating1           Int      @default(0)
+  rating2           Int      @default(0)
+  rating3           Int      @default(0)
+  rating4           Int      @default(0)
+  rating5           Int      @default(0)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@unique([businessId, date])
+  @@index([businessId])
+  @@index([date])
+}
+
+// ============= User Model =============
+model User {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  email             String   @unique
+  password          String
+  name              String?
+  
+  ownedBusinesses   String[] @db.ObjectId
+  
+  isActive          Boolean  @default(true)
+  emailVerified     Boolean  @default(false)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
