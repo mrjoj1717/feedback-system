@@ -21,6 +21,13 @@ model Business {
   totalFeedback     Int      @default(0)
   averageRating     Float    @default(0)
   
+  // ⬅️ أضف هذه الأسطر
+  rating1           Int      @default(0)
+  rating2           Int      @default(0)
+  rating3           Int      @default(0)
+  rating4           Int      @default(0)
+  rating5           Int      @default(0)
+  
   feedbacks         Feedback[]
   views             View[]
   dailyAnalytics    DailyAnalytics[]
