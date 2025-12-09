@@ -1,69 +1,78 @@
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useUser } from '../../context/UserContext';
 
 export default function DashboardLayout({ children }) {
   const router = useRouter();
-  const { user, logout } = useUser();
+  const { user, isLoading, logout } = useUser();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">جاري التحميل...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    if (typeof window !== 'undefined') {
+      router.push('/login');
+    }
+    return null;
+  }
 
   const menuItems = [
-    { name: 'لوحة التحكم', icon: '📊', href: '/dashboard' },
-    { name: 'التحليلات', icon: '📈', href: '/dashboard/analytics' },
-    { name: 'رمز QR', icon: '📱', href: '/dashboard/qr-code' },
-    { name: 'الإعدادات', icon: '⚙️', href: '/dashboard/settings' },
+    { href: '/dashboard', label: 'لوحة التحكم', icon: '📊' },
+    { href: '/dashboard/analytics', label: 'التحليلات', icon: '📈' },
+    { href: '/dashboard/settings', label: 'الإعدادات', icon: '⚙️' },
+    { href: '/dashboard/coupons', label: 'الكوبونات', icon: '' },
+    { href: '/dashboard/qr-code', label: 'Qr Code', icon: '' },
+    { href: '/dashboard/rewards-settings', label: 'اعدادت الكوبونات', icon: '' },
+    
   ];
 
-  const isActive = (href) => {
-    return router.pathname === href;
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gold-600">TapLink</h1>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <span className="text-gray-700">مرحباً، {user?.name}</span>
-              <button
-                onClick={logout}
-                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition"
-              >
-                تسجيل الخروج
-              </button>
-            </div>
+    <div className="min-h-screen bg-gray-50" dir="rtl">
+      <nav className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+          <Link href="/dashboard" className="text-2xl font-bold text-gold-500">
+            TapLink
+          </Link>
+          <div className="flex items-center gap-4">
+            <span className="text-gray-700">{user?.name || user?.email}</span>
+            <button
+              onClick={logout}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+            >
+              تسجيل الخروج
+            </button>
           </div>
         </div>
       </nav>
 
       <div className="flex">
-        {/* Sidebar */}
-        <aside className="w-64 bg-white min-h-screen shadow-lg">
-          <nav className="mt-8 px-4">
+        <aside className="w-64 bg-white shadow-sm min-h-screen">
+          <nav className="p-4 space-y-2">
             {menuItems.map((item) => (
-              <a
+              <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 mb-2 rounded-lg transition ${
-                  isActive(item.href)
-                    ? 'bg-gold-500 text-white'
+                className={`block px-4 py-2 rounded-lg ${
+                  router.pathname === item.href
+                    ? 'bg-gold-100 text-gold-700'
                     : 'text-gray-700 hover:bg-gray-100'
                 }`}
               >
-                <span className="text-2xl">{item.icon}</span>
-                <span className="font-medium">{item.name}</span>
-              </a>
+                {item.icon} {item.label}
+              </Link>
             ))}
           </nav>
         </aside>
 
-        {/* Main Content */}
-        <main className="flex-1 p-8">
-          {children}
-        </main>
+        <main className="flex-1 p-8">{children}</main>
       </div>
     </div>
   );
