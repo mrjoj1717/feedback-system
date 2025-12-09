@@ -17,11 +17,23 @@ export default async function handler(req, res) {
           slug: true,
           email: true,
           whatsappPhone: true,
+          complaintPhone: true,
           googlePlaceId: true,
           googleReviewUrl: true,
           totalViews: true,
           totalFeedback: true,
           averageRating: true,
+          rewardsEnabled: true,
+          reward5Type: true,
+          reward5Value: true,
+          reward5Details: true,
+          reward4Type: true,
+          reward4Value: true,
+          reward4Details: true,
+          reward3Type: true,
+          reward3Value: true,
+          reward3Details: true,
+          rewardExpiryDays: true,
         },
       });
 
@@ -61,11 +73,73 @@ export default async function handler(req, res) {
         console.log('📦 Looking up by ID:', slug);
         business = await prisma.business.findUnique({
           where: { id: slug },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            email: true,
+            whatsappPhone: true,
+            complaintPhone: true,
+            googlePlaceId: true,
+            googleReviewUrl: true,
+            totalViews: true,
+            totalFeedback: true,
+            averageRating: true,
+            rewardsEnabled: true,
+            reward5Type: true,
+            reward5Value: true,
+            reward5Details: true,
+            reward4Type: true,
+            reward4Value: true,
+            reward4Details: true,
+            reward3Type: true,
+            reward3Value: true,
+            reward3Details: true,
+            rewardExpiryDays: true,
+            rating1: true,
+            rating2: true,
+            rating3: true,
+            rating4: true,
+            rating5: true,
+            createdAt: true,
+            updatedAt: true,
+          },
         });
       } else {
         console.log('📦 Looking up by slug:', slug);
         business = await prisma.business.findUnique({
           where: { slug },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            email: true,
+            whatsappPhone: true,
+            complaintPhone: true,
+            googlePlaceId: true,
+            googleReviewUrl: true,
+            totalViews: true,
+            totalFeedback: true,
+            averageRating: true,
+            rewardsEnabled: true,
+            reward5Type: true,
+            reward5Value: true,
+            reward5Details: true,
+            reward4Type: true,
+            reward4Value: true,
+            reward4Details: true,
+            reward3Type: true,
+            reward3Value: true,
+            reward3Details: true,
+            rewardExpiryDays: true,
+            rating1: true,
+            rating2: true,
+            rating3: true,
+            rating4: true,
+            rating5: true,
+            createdAt: true,
+            updatedAt: true,
+          },
         });
       }
 
@@ -87,7 +161,10 @@ export default async function handler(req, res) {
 
     } catch (error) {
       console.error('Authenticated fetch error:', error);
-      return res.status(500).json({ error: 'Internal server error' });
+      return res.status(500).json({ 
+        error: 'Internal server error',
+        details: error.message 
+      });
     }
   }
 
@@ -103,7 +180,7 @@ export default async function handler(req, res) {
       const token = authHeader.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      const { name, email, whatsappPhone, googleReviewUrl } = req.body;
+      const { name, email, whatsappPhone, complaintPhone, googleReviewUrl } = req.body;
 
       console.log('🔄 Updating business:', slug);
 
@@ -134,6 +211,7 @@ export default async function handler(req, res) {
           name,
           email,
           whatsappPhone,
+          complaintPhone,
           googleReviewUrl,
           updatedAt: new Date(),
         },
@@ -144,7 +222,10 @@ export default async function handler(req, res) {
 
     } catch (error) {
       console.error('Update error:', error);
-      return res.status(500).json({ error: 'Internal server error' });
+      return res.status(500).json({ 
+        error: 'Internal server error',
+        details: error.message 
+      });
     }
   }
 
