@@ -14,6 +14,7 @@ model Business {
   slug              String   @unique
   email             String?
   whatsappPhone     String?
+  complaintPhone    String?  // ⬅️ جديد - رقم الشكاوى
   googlePlaceId     String?
   googleReviewUrl   String?
   
@@ -21,12 +22,31 @@ model Business {
   totalFeedback     Int      @default(0)
   averageRating     Float    @default(0)
   
-  // ⬅️ أضف هذه الأسطر
   rating1           Int      @default(0)
   rating2           Int      @default(0)
   rating3           Int      @default(0)
   rating4           Int      @default(0)
   rating5           Int      @default(0)
+  
+  // إعدادات المكافآت - النظام المتقدم
+  rewardsEnabled    Boolean  @default(true)
+  
+  // تقييم 5 نجوم
+  reward5Type       String   @default("percentage_discount")
+  reward5Value      String   @default("15")
+  reward5Details    String?
+  
+  // تقييم 4 نجوم
+  reward4Type       String   @default("percentage_discount")
+  reward4Value      String   @default("10")
+  reward4Details    String?
+  
+  // تقييم 3 نجوم
+  reward3Type       String   @default("percentage_discount")
+  reward3Value      String   @default("5")
+  reward3Details    String?
+  
+  rewardExpiryDays  Int      @default(30)
   
   feedbacks         Feedback[]
   views             View[]
@@ -74,6 +94,9 @@ model Feedback {
   visitorPhone      String?
   visitorIp         String?
   
+  photos            String[] @default([])
+  couponCode        String?
+  
   status            String   @default("pending")
   
   createdAt         DateTime @default(now())
@@ -82,6 +105,33 @@ model Feedback {
   @@index([businessId])
   @@index([status])
   @@index([createdAt])
+}
+
+// ============= Coupon Model - النظام المتقدم =============
+model Coupon {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  businessId    String   @db.ObjectId
+  code          String   @unique
+  
+  // نوع المكافأة والقيمة
+  rewardType    String   // "percentage_discount", "fixed_discount", "free_item", etc.
+  rewardValue   String   // القيمة (نسبة، مبلغ، اسم منتج)
+  rewardDetails String?  // تفاصيل إضافية
+  
+  feedbackId    String?  @db.ObjectId
+  customerName  String?
+  customerPhone String?
+  
+  isUsed        Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  usedAt        DateTime?
+  
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+  
+  @@index([businessId])
+  @@index([isUsed])
+  @@index([expiresAt])
 }
 
 // ============= View Model =============
