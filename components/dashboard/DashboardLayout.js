@@ -31,6 +31,7 @@ export default function DashboardLayout({ children }) {
     { href: '/dashboard/coupons', label: 'الكوبونات', icon: '' },
     { href: '/dashboard/qr-code', label: 'Qr Code', icon: '' },
     { href: '/dashboard/rewards-settings', label: 'اعدادت الكوبونات', icon: '' },
+   { href: '/dashboard/customize', label: 'اعدادت صفحة التقييم', icon: '' },
     
   ];
 
