@@ -9,16 +9,70 @@ export default function FeedbackPage({ business }) {
   const [comment, setComment] = useState('');
   const [visitorName, setVisitorName] = useState('');
   const [visitorPhone, setVisitorPhone] = useState('');
+  const [photos, setPhotos] = useState([]); // ⬅️ جديد
+  const [uploadingPhotos, setUploadingPhotos] = useState(false); // ⬅️ جديد
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [coupon, setCoupon] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
+
+  // دالة رفع الصور - جديد
+  const handlePhotoUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    
+    if (files.length === 0) return;
+
+    // تحقق من عدد الصور (حد أقصى 3)
+    if (photos.length + files.length > 3) {
+      alert('❌ يمكنك رفع 3 صور كحد أقصى');
+      return;
+    }
+
+    // تحقق من حجم كل صورة (أقل من 5MB)
+    for (const file of files) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert('❌ حجم الصورة يجب أن يكون أقل من 5MB');
+        return;
+      }
+    }
+
+    setUploadingPhotos(true);
+
+    try {
+      const formData = new FormData();
+      files.forEach((file) => {
+        formData.append('photos', file);
+      });
+
+      const res = await fetch('/api/upload/feedback-photo', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error('Upload failed');
+
+      const data = await res.json();
+      setPhotos([...photos, ...data.photos]);
+      
+      console.log('✅ Photos uploaded:', data.photos);
+
+    } catch (error) {
+      alert('❌ فشل رفع الصور: ' + error.message);
+    } finally {
+      setUploadingPhotos(false);
+    }
+  };
+
+  // دالة حذف صورة - جديد
+  const removePhoto = (index) => {
+    setPhotos(photos.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      // 1. حفظ التقييم
+      // 1. حفظ التقييم مع الصور
       const feedbackRes = await fetch('/api/feedback/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -28,6 +82,7 @@ export default function FeedbackPage({ business }) {
           comment,
           visitorName,
           visitorPhone,
+          photos, // ⬅️ إرسال الصور
         }),
       });
 
@@ -37,7 +92,7 @@ export default function FeedbackPage({ business }) {
         throw new Error(feedbackData.error);
       }
 
-      // 2. للتقييمات المنخفضة (1-2 نجوم) → توجيه مباشر لواتساب الشكاوى
+      // 2. للتقييمات المنخفضة (1-2 نجوم)
       if (rating <= 2) {
         const complaintNumber = business.complaintPhone || business.whatsappPhone;
         
@@ -45,11 +100,11 @@ export default function FeedbackPage({ business }) {
           const message = `مرحباً، لدي ملاحظات بخصوص تجربتي مع ${business.name}.\n\nالتقييم: ${'⭐'.repeat(rating)}${comment ? `\n\nالتعليق: ${comment}` : ''}${visitorName ? `\n\nالاسم: ${visitorName}` : ''}`;
           
           window.location.href = `https://wa.me/${complaintNumber}?text=${encodeURIComponent(message)}`;
-          return; // إيقاف باقي الكود - لن تظهر شاشة النجاح
+          return;
         }
       }
 
-      // 3. للتقييمات 3 نجوم أو أكثر → إنشاء كوبون (اختياري)
+      // 3. للتقييمات 3 نجوم أو أكثر → إنشاء كوبون
       if (rating >= 3 && business.rewardsEnabled) {
         const couponRes = await fetch('/api/coupon/create', {
           method: 'POST',
@@ -70,7 +125,7 @@ export default function FeedbackPage({ business }) {
         }
       }
 
-      // 4. عرض شاشة النجاح (للتقييمات 3 نجوم أو أكثر)
+      // 4. عرض شاشة النجاح
       setShowSuccess(true);
 
     } catch (error) {
@@ -80,7 +135,7 @@ export default function FeedbackPage({ business }) {
     }
   };
 
-  // دالة لعرض نص المكافأة في الفورم
+  // دالة معاينة المكافأة
   const getRewardPreview = (selectedRating) => {
     if (!business.rewardsEnabled || selectedRating < 3) return null;
 
@@ -109,9 +164,18 @@ export default function FeedbackPage({ business }) {
     }
 
     return (
-      <div className="mt-4 p-4 bg-gradient-to-r from-gold-50 to-yellow-50 border-2 border-gold-300 rounded-xl text-center">
+      <div 
+        className="mt-4 p-4 rounded-xl text-center border-2"
+        style={{
+          background: `linear-gradient(to right, ${business.primaryColor}15, ${business.secondaryColor}15)`,
+          borderColor: business.primaryColor
+        }}
+      >
         <div className="text-4xl mb-2">{icon}</div>
-        <p className="text-gold-700 font-bold text-lg">
+        <p 
+          className="font-bold text-lg"
+          style={{ color: business.primaryColor }}
+        >
           {rewardText}
         </p>
         <p className="text-sm text-gray-600 mt-1">
@@ -121,13 +185,17 @@ export default function FeedbackPage({ business }) {
     );
   };
 
-  // عرض شاشة النجاح مع الكوبون
   if (showSuccess) {
     return <SuccessScreen business={business} rating={rating} coupon={coupon} />;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gold-50 via-white to-blue-50 py-12 px-4">
+    <div 
+      className="min-h-screen py-12 px-4"
+      style={{
+        background: `linear-gradient(to bottom right, ${business.backgroundColor}, ${business.primaryColor}10, ${business.secondaryColor}10)`
+      }}
+    >
       <Head>
         <title>{business.name} - شاركنا رأيك</title>
       </Head>
@@ -135,7 +203,17 @@ export default function FeedbackPage({ business }) {
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          {business.logo && (
+            <img
+              src={business.logo}
+              alt={business.name}
+              className="w-24 h-24 object-contain mx-auto mb-4 rounded-2xl"
+            />
+          )}
+          <h1 
+            className="text-4xl font-bold mb-2"
+            style={{ color: business.primaryColor }}
+          >
             {business.name}
           </h1>
           <p className="text-xl text-gray-600">
@@ -164,7 +242,6 @@ export default function FeedbackPage({ business }) {
                 ))}
               </div>
               
-              {/* عرض معلومات المكافأة */}
               {rating > 0 && getRewardPreview(rating)}
             </div>
 
@@ -177,9 +254,76 @@ export default function FeedbackPage({ business }) {
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 rows="4"
-                className="w-full px-5 py-4 border-2 border-gray-300 rounded-2xl focus:ring-4 focus:ring-gold-300 focus:border-gold-500 transition-all resize-none"
+                className="w-full px-5 py-4 border-2 border-gray-300 rounded-2xl transition-all resize-none"
+                style={{
+                  borderColor: comment ? business.primaryColor : '#D1D5DB'
+                }}
                 placeholder="ما الذي أعجبك؟ كيف يمكننا التحسين؟"
               />
+            </div>
+
+            {/* صور التقييم - جديد */}
+            <div>
+              <label className="block text-lg font-semibold text-gray-900 mb-2">
+                أضف صور (اختياري - حتى 3 صور)
+              </label>
+
+              {/* معاينة الصور */}
+              {photos.length > 0 && (
+                <div className="grid grid-cols-3 gap-4 mb-4">
+                  {photos.map((photo, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={photo}
+                        alt={`Photo ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-xl border-2 border-gray-300"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(index)}
+                        className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center font-bold"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* زر رفع الصور */}
+              {photos.length < 3 && (
+                <label
+                  className="block w-full py-4 border-2 border-dashed rounded-xl text-center cursor-pointer hover:bg-gray-50 transition"
+                  style={{
+                    borderColor: business.primaryColor,
+                    color: business.primaryColor
+                  }}
+                >
+                  {uploadingPhotos ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="animate-spin">⏳</span>
+                      <span>جاري الرفع...</span>
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      <span>📷</span>
+                      <span>اضغط لإضافة صور ({3 - photos.length} متبقية)</span>
+                    </span>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handlePhotoUpload}
+                    disabled={uploadingPhotos}
+                    className="hidden"
+                  />
+                </label>
+              )}
+
+              <p className="text-sm text-gray-500 mt-2 text-center">
+                PNG, JPG, GIF - حتى 5MB لكل صورة
+              </p>
             </div>
 
             {/* Name */}
@@ -191,7 +335,10 @@ export default function FeedbackPage({ business }) {
                 type="text"
                 value={visitorName}
                 onChange={(e) => setVisitorName(e.target.value)}
-                className="w-full px-5 py-4 border-2 border-gray-300 rounded-2xl focus:ring-4 focus:ring-gold-300 focus:border-gold-500 transition-all"
+                className="w-full px-5 py-4 border-2 border-gray-300 rounded-2xl transition-all"
+                style={{
+                  borderColor: visitorName ? business.primaryColor : '#D1D5DB'
+                }}
                 placeholder="اسمك"
               />
             </div>
@@ -205,7 +352,10 @@ export default function FeedbackPage({ business }) {
                 type="tel"
                 value={visitorPhone}
                 onChange={(e) => setVisitorPhone(e.target.value)}
-                className="w-full px-5 py-4 border-2 border-gray-300 rounded-2xl focus:ring-4 focus:ring-gold-300 focus:border-gold-500 transition-all"
+                className="w-full px-5 py-4 border-2 border-gray-300 rounded-2xl transition-all"
+                style={{
+                  borderColor: visitorPhone ? business.primaryColor : '#D1D5DB'
+                }}
                 placeholder="05xxxxxxxx"
                 dir="ltr"
               />
@@ -214,17 +364,22 @@ export default function FeedbackPage({ business }) {
             {/* Submit */}
             <button
               type="submit"
-              disabled={!rating || isSubmitting}
-              className={`w-full py-5 px-6 rounded-2xl text-white text-xl font-bold transition-all duration-300 transform ${
-                !rating || isSubmitting
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 hover:scale-105 shadow-lg hover:shadow-xl'
-              }`}
+              disabled={!rating || isSubmitting || uploadingPhotos}
+              className="w-full py-5 px-6 rounded-2xl text-white text-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+              style={{
+                backgroundColor: !rating || isSubmitting || uploadingPhotos ? '#9CA3AF' : business.primaryColor,
+                cursor: !rating || isSubmitting || uploadingPhotos ? 'not-allowed' : 'pointer'
+              }}
             >
               {isSubmitting ? (
                 <span className="flex items-center justify-center gap-3">
                   <span className="animate-spin">⏳</span>
                   جاري الإرسال...
+                </span>
+              ) : uploadingPhotos ? (
+                <span className="flex items-center justify-center gap-3">
+                  <span className="animate-spin">📷</span>
+                  جاري رفع الصور...
                 </span>
               ) : (
                 <span>إرسال التقييم</span>
@@ -236,6 +391,8 @@ export default function FeedbackPage({ business }) {
     </div>
   );
 }
+
+
 
 // شاشة النجاح مع الكوبون
 function SuccessScreen({ business, rating, coupon }) {
@@ -480,6 +637,12 @@ export async function getServerSideProps({ params }) {
       googleReviewUrl: true,
       rewardsEnabled: true,
       
+      // التخصيص
+      logo: true,
+      primaryColor: true,
+      secondaryColor: true,
+      backgroundColor: true,
+      
       // النظام المتقدم
       reward5Type: true,
       reward5Value: true,
@@ -509,6 +672,12 @@ export async function getServerSideProps({ params }) {
         complaintPhone: business.complaintPhone || null,
         googleReviewUrl: business.googleReviewUrl || null,
         rewardsEnabled: business.rewardsEnabled ?? true,
+        
+        // التخصيص
+        logo: business.logo || '',
+        primaryColor: business.primaryColor || '#F59E0B',
+        secondaryColor: business.secondaryColor || '#3B82F6',
+        backgroundColor: business.backgroundColor || '#FFFFFF',
         
         reward5Type: business.reward5Type || 'percentage_discount',
         reward5Value: business.reward5Value || '15',

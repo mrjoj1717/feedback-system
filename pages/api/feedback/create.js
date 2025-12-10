@@ -6,72 +6,67 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { businessId, rating, comment, visitorName, visitorPhone } = req.body;
+    const { 
+      businessId, 
+      rating, 
+      comment, 
+      visitorName, 
+      visitorPhone,
+      photos // ⬅️ جديد - الصور
+    } = req.body;
 
-    console.log('📥 Creating feedback:', { businessId, rating });
+    if (!businessId || !rating) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
 
-    // حفظ التقييم
+    // Get visitor IP
+    const visitorIp = req.headers['x-forwarded-for'] || 
+                      req.headers['x-real-ip'] || 
+                      req.connection.remoteAddress;
+
+    // حفظ التقييم مع الصور
     const feedback = await prisma.feedback.create({
       data: {
         businessId,
-        rating,
+        rating: parseInt(rating),
         comment: comment || null,
         visitorName: visitorName || null,
         visitorPhone: visitorPhone || null,
+        visitorIp,
+        photos: photos || [], // ⬅️ حفظ روابط الصور
         status: 'pending',
-      }
+      },
     });
 
-    // تحديث إحصائيات Business
+    // تحديث إحصائيات النشاط
     const business = await prisma.business.findUnique({
       where: { id: businessId },
-      select: {
-        totalFeedback: true,
-        averageRating: true,
-        rating1: true,
-        rating2: true,
-        rating3: true,
-        rating4: true,
-        rating5: true,
-      }
     });
 
     const newTotalFeedback = business.totalFeedback + 1;
-    const totalRatingSum = 
-      (business.rating1 * 1) + 
-      (business.rating2 * 2) + 
-      (business.rating3 * 3) + 
-      (business.rating4 * 4) + 
-      (business.rating5 * 5) + 
-      rating;
-    
-    const newAverageRating = totalRatingSum / newTotalFeedback;
-
-    const ratingField = `rating${rating}`;
+    const newAverageRating = 
+      (business.averageRating * business.totalFeedback + rating) / newTotalFeedback;
 
     await prisma.business.update({
       where: { id: businessId },
       data: {
         totalFeedback: newTotalFeedback,
         averageRating: newAverageRating,
-        [ratingField]: business[ratingField] + 1,
-      }
+        [`rating${rating}`]: { increment: 1 },
+      },
     });
 
-    console.log('✅ Feedback created:', feedback.id);
+    console.log('✅ Feedback created with photos:', feedback.id);
 
-    return res.status(201).json({
-      success: true,
-      feedback: {
-        id: feedback.id,
-        rating: feedback.rating,
-      }
+    return res.json({ 
+      success: true, 
+      feedback 
     });
 
   } catch (error) {
     console.error('❌ Create feedback error:', error);
     return res.status(500).json({ 
-      error: 'حدث خطأ في حفظ التقييم',
+      error: 'حدث خطأ',
       details: error.message 
     });
   }

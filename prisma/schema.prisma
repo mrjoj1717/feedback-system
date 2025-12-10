@@ -17,6 +17,12 @@ model Business {
   complaintPhone    String?  // ⬅️ جديد - رقم الشكاوى
   googlePlaceId     String?
   googleReviewUrl   String?
+   
+  // التخصيص - جديد 🎨
+  logo              String?  @default("")
+  primaryColor      String   @default("#F59E0B")
+  secondaryColor    String   @default("#3B82F6")
+  backgroundColor   String   @default("#FFFFFF")
   
   totalViews        Int      @default(0)
   totalFeedback     Int      @default(0)
