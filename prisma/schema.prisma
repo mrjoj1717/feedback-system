@@ -140,7 +140,7 @@ model Coupon {
   @@index([expiresAt])
 }
 
-// ============= View Model =============
+/// ============= View Model =============
 model View {
   id                String   @id @default(auto()) @map("_id") @db.ObjectId
   businessId        String   @db.ObjectId
@@ -149,12 +149,15 @@ model View {
   visitorIp         String?
   userAgent         String?
   referrer          String?
+  source            String?  @default("direct")  // ⬅️ أضف اسم الحقل
   
   createdAt         DateTime @default(now())
   
   @@index([businessId])
   @@index([createdAt])
+  @@index([source])  // ⬅️ مسافة واحدة قبل @@
 }
+
 
 // ============= Daily Analytics =============
 model DailyAnalytics {

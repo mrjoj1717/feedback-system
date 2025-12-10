@@ -15,6 +15,57 @@ export default function FeedbackPage({ business }) {
   const [coupon, setCoupon] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // ⬅️ جديد - تسجيل الزيارة عند تحميل الصفحة
+  useEffect(() => {
+    if (business?.id) {
+      recordVisit();
+    }
+  }, [business?.id]);
+
+  // ⬅️ دالة تسجيل الزيارة
+  const recordVisit = async () => {
+    try {
+const response = await fetch(`/api/business/track/${business.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          source: getVisitSource(),
+        }),
+      });
+
+      if (response.ok) {
+        console.log('✅ Visit recorded successfully');
+      }
+    } catch (error) {
+      console.error('❌ Error recording visit:', error);
+    }
+  };
+
+  // ⬅️ دالة تحديد مصدر الزيارة
+  const getVisitSource = () => {
+    // التحقق من URL parameters
+    if (typeof window === 'undefined') return 'direct';
+    
+    const params = new URLSearchParams(window.location.search);
+    const source = params.get('source') || params.get('utm_source');
+    
+    if (source) return source;
+    
+    // التحقق من Referrer
+    const referrer = document.referrer.toLowerCase();
+    if (referrer.includes('google')) return 'google';
+    if (referrer.includes('facebook')) return 'facebook';
+    if (referrer.includes('instagram')) return 'instagram';
+    if (referrer.includes('twitter') || referrer.includes('x.com')) return 'twitter';
+    if (referrer.includes('whatsapp')) return 'whatsapp';
+    if (referrer.includes('tiktok')) return 'tiktok';
+    if (referrer.includes('snapchat')) return 'snapchat';
+    
+    return 'direct';
+  };
+
   // دالة رفع الصور - جديد
   const handlePhotoUpload = async (e) => {
     const files = Array.from(e.target.files);
