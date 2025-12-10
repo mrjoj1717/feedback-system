@@ -39,7 +39,7 @@ export default function DashboardLayout({ children }) {
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <Link href="/dashboard" className="text-2xl font-bold text-gold-500">
-            TapLink
+            متجر تاب لينك
           </Link>
           <div className="flex items-center gap-4">
             <span className="text-gray-700">{user?.name || user?.email}</span>
